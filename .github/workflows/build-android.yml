@@ -1,0 +1,74 @@
+
+name: Build Knightfall APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.5.2
+
+    steps:
+      - name: Download project
+        uses: actions/checkout@v4
+
+      - name: Configure Android export
+        shell: bash
+        run: |
+          cat > export_presets.cfg <<'EOF'
+          [preset.0]
+          name="Android"
+          platform="Android"
+          runnable=true
+          dedicated_server=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path="build/Knightfall.apk"
+          encryption_include_filters=""
+          encryption_exclude_filters=""
+          encrypt_pck=false
+          encrypt_directory=false
+
+          [preset.0.options]
+          custom_template/debug=""
+          custom_template/release=""
+          gradle_build/use_gradle_build=false
+          gradle_build/export_format=0
+          gradle_build/min_sdk=""
+          gradle_build/target_sdk=""
+          architectures/armeabi-v7a=false
+          architectures/arm64-v8a=true
+          architectures/x86=false
+          architectures/x86_64=false
+          version/code=1
+          version/name="1.0"
+          package/unique_name="com.knightfall.game"
+          package/name="Knightfall"
+          package/signed=true
+          package/app_category=2
+          screen/immersive_mode=true
+          EOF
+          mkdir -p build
+
+      - name: Import project
+        shell: bash
+        run: godot --headless --editor --path . --quit
+
+      - name: Export Android APK
+        shell: bash
+        run: godot --headless --path . --export-debug "Android" build/Knightfall.apk
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Knightfall-Android-APK
+          path: build/Knightfall.apk
+          if-no-files-found: error
